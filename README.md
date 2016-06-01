@@ -19,9 +19,8 @@ In the future (when the no consent screen toggle is implemented) it can also be 
 creating mocks physically in the code when running tests, simply run the server and configure your web
 application to point the mock OAuth2 server when running the tests.
 
-The project is similar in design to [oauth2 provider](https://github.com/zalando-stups/mocks/tree/master/oauth2-provider),
-however it aims to be much more configurable and also provides a completely implementation of OAuth2 spec rather
-than some specific login flows
+The project was created because I didn't manage to find an easily configurable OAuth2 mock server in the community that
+also supported all of the different login flows specified by the OAuth2 specification.
 
 ## Todo
 - [ ] Add an option to disable all consent screens (handy for tests that run
