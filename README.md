@@ -24,19 +24,22 @@ however it aims to be much more configurable and also provides a completely impl
 than some specific login flows
 
 ## Todo
-* Add an option to disable all consent screens (handy for tests that run
+- [ ] Add an option to disable all consent screens (handy for tests that run
 against the mock server)
-* Add some more really specific configuration (such as disabling `client_secret` checks
+- [ ] Add some more really specific configuration (such as disabling `client_secret` checks
 since not all OAuth2 servers use this)
-* Write tests
-* Create a docker image
-* Improve documentation a bit more
+- [ ] Write tests
+- [ ] Create a docker image
+- [ ] Improve documentation a bit more
 
 ## Running the server via Play
 
 * Load dependencies via `sbt update`
 * Run via `sbt ~run`
-* Point your web application against [localhost:9000](http://localhost:9000)
+* Point your web application OAuth2 endpoits against [localhost:9000](http://localhost:9000). See
+[routes](https://github.com/zalando/OAuth2-mock-play/blob/master/conf/routes) for info on the routes and
+[application.conf](https://github.com/zalando/OAuth2-mock-play/blob/master/conf/application.conf) for how the
+configuration works
 
 Note that you may need to disable secure cookies in your web application for this to work, since the server
 is running over standard HTTP rather than HTTPS
