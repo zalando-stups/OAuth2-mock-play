@@ -46,13 +46,13 @@ is running over standard HTTP rather than HTTPS
 
 ## Docker Image
 
-The project is currently deployed to docker at, its located at
-`registry-write.opensource.zalan.do/bteam/oauth2-mock-play:1.0.0-SNAPSHOT`
+The project is currently deployed via the Zalando open source write endpoint
+`registry-write.opensource.zalan.do/bteam/oauth2-mock-play:1.0.0-SNAPSHOT` however the read/pull endpoint is without `-write` namely `registry.opensource.zalan.do/bteam/oauth2-mock-play:1.0.0-SNAPSHOT`
 
 To run the docker image do
 
 ```sh
-docker run -it 9000:9000 registry-write.opensource.zalan.do/bteam/oauth2-mock-play:1.0.0-SNAPSHOT
+docker run -it -p 9000:9000 registry.opensource.zalan.do/bteam/oauth2-mock-play:1.0.0-SNAPSHOT
 ```
 
 ## License
