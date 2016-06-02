@@ -49,7 +49,7 @@ is running over standard HTTP rather than HTTPS
 ## Docker Image
 
 The project is currently deployed via the Zalando open source write endpoint
-`registry-write.opensource.zalan.do/bteam/oauth2-mock-play:1.0.0-SNAPSHOT` however the read/pull endpoint is without `-write` namely `registry.opensource.zalan.do/bteam/oauth2-mock-play:1.0.0-SNAPSHOT`
+`registry-write.opensource.zalan.do/bteam/oauth2-mock-play:1.0.1-SNAPSHOT` however the read/pull endpoint is without `-write` namely `registry.opensource.zalan.do/bteam/oauth2-mock-play:1.0.0-SNAPSHOT`
 
 To run the docker image do
 
