@@ -25,6 +25,7 @@ class Application(implicit val executionContext: ExecutionContext,
 
   /**
     * Find out if there is any extra scope data that we want to send to the client
+    *
     * @param accessTokenResponse A constructed access token response
     * @param requestedUserScopes The scopes that the user is requesting
     * @return
@@ -108,6 +109,7 @@ class Application(implicit val executionContext: ExecutionContext,
     config.as[FiniteDuration]("OAuth2.internalRedirectTimeout")
   lazy val pendingConsentTimeout =
     config.as[FiniteDuration]("OAuth2.pendingConsentTimeout")
+  lazy val disableConsent = config.as[Boolean]("OAuth.disableConsent")
 
   def accessToken(maybeGrantType: Option[String],
                   maybeScope: Option[String],
@@ -398,18 +400,74 @@ class Application(implicit val executionContext: ExecutionContext,
           error
         case Xor.Right(
             (state, redirectUri, responseType, clientId, requestedScopes)) =>
-          val authorizeQuery = PendingConsentStore(
+          if (disableConsent) {
+            // Automatically authorize depending on the response type
+            users.lift(0) match {
+              case Some(user) =>
+                responseType match {
+                  case ResponseType.Code =>
+                    import com.netaporter.uri.dsl._
+                    val code = java.util.UUID.randomUUID().toString
+                    val authorizeStore = AuthorizeStore.Code(
+                      state,
+                      clientId,
+                      redirectUri,
+                      user.username,
+                      requestedScopes
+                    )
+
+                    authorizeStoreCache.value.set(
+                      code, authorizeStore, internalRedirectTimeout)
+
+                    val url = (redirectUri ?
+                      ("code" -> code) ?
+                      ("state" -> state)).toString()
+
+                    Redirect(url, MOVED_PERMANENTLY)
+                  case ResponseType.Token =>
+                    import com.netaporter.uri.dsl._
+                    val accessToken = java.util.UUID.randomUUID.toString
+                    val authorizeStore = AuthorizeStore.Token(
+                      accessToken,
+                      LocalDateTime.now().plusNanos(expiration.toNanos),
+                      TokenType.Bearer,
+                      user.username,
+                      realm,
+                      requestedScopes
+                    )
+
+                    authorizeStoreCache.value.set(
+                      accessToken, authorizeStore, internalRedirectTimeout)
+
+                    val url = com.netaporter.uri.Uri
+                      .parse(redirectUri)
+                      .withFragment(
+                        ("token" -> accessToken) ?
+                          ("expires_in" -> expiration.toSeconds.toString) ?
+                          ("token_type" -> TokenType.Bearer.id) ?
+                          ("state" -> state)
+                      )
+                      .toString()
+
+                    Redirect(url, MOVED_PERMANENTLY)
+                }
+              case None =>
+                InternalServerError(views.Application.error("Internal Error"))
+            }
+          } else {
+            val authorizeQuery = PendingConsentStore(
               state,
               redirectUri,
               responseType,
               clientId,
               requestedScopes
-          )
-          pendingConsentStoreCache.value.set(
+            )
+            pendingConsentStoreCache.value.set(
               state, authorizeQuery, pendingConsentTimeout)
 
-          Ok(views.Application.consent(
-                  requestedScopes, state, scopeRequestDelimiter))
+            Ok(views.Application.consent(
+              requestedScopes, state, scopeRequestDelimiter))
+          }
       }
     }
   }
