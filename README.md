@@ -15,15 +15,16 @@ With the mock you simply run the server and configure your applications OAuth2 e
 also designed to be highly configurable via environment variables, so its easy to configure the mock to suite your
 applications needs.
 
-In the future (when the no consent screen toggle is implemented) it can also be used as a replacement for
-creating mocks physically in the code when running tests, simply run the server and configure your web
+
+OAuth2 Mock Play Server can also be used as a replacement for creating mocks physically in the code when running tests.
+Firstly set `OAUTH2_DISABLE_CONSENT=true` and then simply run the server and configure your web
 application to point the mock OAuth2 server when running the tests.
 
 The project was created because I didn't manage to find an easily configurable OAuth2 mock server in the community that
 also supported all of the different login flows specified by the OAuth2 specification.
 
 ## Todo
-- [ ] Add an option to disable all consent screens (handy for tests that run
+- [x] Add an option to disable all consent screens (handy for tests that run
 against the mock server)
 - [ ] Add some more really specific configuration (such as disabling `client_secret` checks
 since not all OAuth2 servers use this)
@@ -31,12 +32,13 @@ since not all OAuth2 servers use this)
 - [x] Create a docker image
 - [ ] Improve documentation a bit more
 - [ ] Add a swagger spec for documentation
+- [ ] Add logging
 
 ## Running the server via Play
 
 * Load dependencies via `sbt update`
 * Run via `sbt ~run`
-* Point your web application OAuth2 endpoits against [localhost:9000](http://localhost:9000). See
+* Point your web application OAuth2 endpoints against [localhost:9000](http://localhost:9000). See
 [routes](https://github.com/zalando/OAuth2-mock-play/blob/master/conf/routes) for info on the routes and
 [application.conf](https://github.com/zalando/OAuth2-mock-play/blob/master/conf/application.conf) for how the
 configuration works

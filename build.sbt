@@ -78,7 +78,7 @@ dockerfile in docker := {
 
 //Docker specific settings
 
-packageName in Docker   := "OAuth2-mock-play"
+packageName in Docker   := name.value
 dockerExposedPorts      := Seq(9000)
 
 imageNames in docker := Seq({
