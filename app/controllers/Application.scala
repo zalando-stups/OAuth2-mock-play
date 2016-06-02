@@ -109,7 +109,7 @@ class Application(implicit val executionContext: ExecutionContext,
     config.as[FiniteDuration]("OAuth2.internalRedirectTimeout")
   lazy val pendingConsentTimeout =
     config.as[FiniteDuration]("OAuth2.pendingConsentTimeout")
-  lazy val disableConsent = config.as[Boolean]("OAuth.disableConsent")
+  lazy val disableConsent = config.as[Boolean]("OAuth2.disableConsent")
 
   def accessToken(maybeGrantType: Option[String],
                   maybeScope: Option[String],
