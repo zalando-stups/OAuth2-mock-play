@@ -1,6 +1,6 @@
 name := "OAuth2-mock-play"
 
-organization in ThisBuild := "org.mdedetrich"
+organization in ThisBuild := "org.zalando"
 
 version := "1.0.0-SNAPSHOT"
 
@@ -62,3 +62,29 @@ DigestKeys.algorithms := Seq("md5")
 
 // All work and no play...
 emojiLogs
+
+enablePlugins(sbtdocker.DockerPlugin, JavaAppPackaging)
+
+dockerfile in docker := {
+  val appDir: File = stage.value
+  val targetDir = "/app"
+
+  new Dockerfile {
+    from("java")
+    entryPoint(s"$targetDir/bin/${executableScriptName.value}")
+    copy(appDir, targetDir)
+  }
+}
+
+//Docker specific settings
+
+packageName in Docker   := "OAuth2-mock-play"
+dockerExposedPorts      := Seq(9000)
+
+imageNames in docker := Seq({
+  val namespace = Option("bteam")
+  val name = Keys.normalizedName.value
+  val tag = Some(version.value)
+
+  ImageName(Option("registry-write.opensource.zalan.do"), namespace, name, tag)
+})
