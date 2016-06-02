@@ -28,7 +28,7 @@ against the mock server)
 - [ ] Add some more really specific configuration (such as disabling `client_secret` checks
 since not all OAuth2 servers use this)
 - [ ] Write tests
-- [ ] Create a docker image
+- [x] Create a docker image
 - [ ] Improve documentation a bit more
 - [ ] Add a swagger spec for documentation
 
@@ -45,7 +45,15 @@ Note that you may need to disable secure cookies in your web application for thi
 is running over standard HTTP rather than HTTPS
 
 ## Docker Image
-The project will be deployed to docker soon, stay tuned!
+
+The project is currently deployed to docker at, its located at
+`registry-write.opensource.zalan.do/bteam/oauth2-mock-play:1.0.0-SNAPSHOT`
+
+To run the docker image do
+
+```sh
+docker run -it 9000:9000 registry-write.opensource.zalan.do/bteam/oauth2-mock-play:1.0.0-SNAPSHOT
+```
 
 ## License
 
