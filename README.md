@@ -30,6 +30,7 @@ since not all OAuth2 servers use this)
 - [ ] Write tests
 - [ ] Create a docker image
 - [ ] Improve documentation a bit more
+- [ ] Add a swagger spec for documentation
 
 ## Running the server via Play
 
