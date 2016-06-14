@@ -111,15 +111,28 @@ class Application(implicit val executionContext: ExecutionContext,
     config.as[FiniteDuration]("OAuth2.pendingConsentTimeout")
   lazy val disableConsent = config.as[Boolean]("OAuth2.disableConsent")
 
-  def accessToken(maybeGrantType: Option[String],
-                  maybeScope: Option[String],
-                  maybeUsername: Option[String],
-                  maybePassword: Option[String],
-                  maybeCode: Option[String],
-                  maybeClientId: Option[String],
-                  maybeClientSecret: Option[String],
-                  maybeRedirectUri: Option[String]) = {
-    Action {
+  val accessTokenForm = Form(
+    tuple(
+      "grant_type" -> optional(text),
+      "scope" -> optional(text),
+      "username" -> optional(text),
+      "password" -> optional(text),
+      "code" -> optional(text),
+      "client_id" -> optional(text),
+      "client_secret" -> optional(text),
+      "redirect_uri" -> optional(text)
+    )
+  )
+  def accessToken = {
+    Action {implicit request =>
+      val (maybeGrantType: Option[String],
+          maybeScope: Option[String],
+          maybeUsername: Option[String],
+          maybePassword: Option[String],
+          maybeCode: Option[String],
+          maybeClientId: Option[String],
+          maybeClientSecret: Option[String],
+          maybeRedirectUri: Option[String]) = accessTokenForm.bindFromRequest.get
       maybeGrantType match {
         case Some("authorization_code") =>
           val params = for {
