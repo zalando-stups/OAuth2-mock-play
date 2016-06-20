@@ -12,6 +12,7 @@ object AuthorizeStore {
   case class Token(accessToken: String,
                    expirationDate: LocalDateTime,
                    tokenType: TokenType,
+                   grantType: GrantType,
                    uid: String,
                    realm: String,
                    scope: List[String])
@@ -23,4 +24,3 @@ object AuthorizeStore {
                   username: String,
                   scope: List[String]) extends AuthorizeStore
 }
-
