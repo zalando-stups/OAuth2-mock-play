@@ -1,6 +1,7 @@
 package controllers
 
 import java.time.LocalDateTime
+import sun.misc.BASE64Decoder
 
 import cats.data.Xor
 import com.typesafe.config.{Config, ConfigException}
@@ -75,6 +76,28 @@ class Application(implicit val executionContext: ExecutionContext,
     }
   }
 
+  private def decodeBasicAuth(auth: String): Option[(String, String)] = {
+    lazy val basicSt = "basic "
+
+    if (auth.length() < basicSt.length()) {
+      return None
+    }
+    val basicReqSt = auth.substring(0, basicSt.length())
+    if (basicReqSt.toLowerCase() != basicSt) {
+      return None
+    }
+    val basicAuthSt = auth.replaceFirst(basicReqSt, "")
+    //BESE64Decoder is not thread safe, don't make it a field of this object
+    val decoder = new BASE64Decoder()
+    val decodedAuthSt = new String(decoder.decodeBuffer(basicAuthSt), "UTF-8")
+    val usernamePassword = decodedAuthSt.split(":")
+    if (usernamePassword.length >= 2) {
+      //account for ":" in passwords
+      return Some((usernamePassword(0), usernamePassword.splitAt(1)._2.mkString(":")))
+    }
+    None
+  }
+
   implicit val clientCredentialsValueReader =
     new ValueReader[ClientCredential] {
       def read(config: Config, path: String): ClientCredential = {
@@ -133,6 +156,7 @@ class Application(implicit val executionContext: ExecutionContext,
           maybeClientId: Option[String],
           maybeClientSecret: Option[String],
           maybeRedirectUri: Option[String]) = accessTokenForm.bindFromRequest.get
+      val auth = request.headers.get("authorization").flatMap(decodeBasicAuth)
       maybeGrantType match {
         case Some("authorization_code") =>
           val params = for {
@@ -141,13 +165,19 @@ class Application(implicit val executionContext: ExecutionContext,
                        UnprocessableEntity(
                            views.Application.error("Missing code")))
             clientId <- Xor.fromOption(
-                           maybeClientId,
-                           UnprocessableEntity(
-                               views.Application.error("Missing client_id")))
+                        maybeClientId orElse auth match {
+                            case Some((clientId, clientSecret)) => Some(clientId)
+                            case _ => None
+                        },
+                        UnprocessableEntity(views.Application.error(
+                              "Missing client_id")))
             clientSecret <- Xor.fromOption(
-                               maybeClientSecret,
-                               UnprocessableEntity(views.Application.error(
-                                       "Missing client_secret")))
+                    maybeClientSecret orElse auth match {
+                      case Some((clientId, clientSecret)) => Some(clientSecret)
+                      case _ => None
+                    },
+                    UnprocessableEntity(views.Application.error(
+                          "Missing client_secret")))
             redirectUri <- Xor.fromOption(
                               maybeRedirectUri,
                               UnprocessableEntity(views.Application.error(
@@ -221,13 +251,19 @@ class Application(implicit val executionContext: ExecutionContext,
         case Some("client_credentials") =>
           val params = for {
             clientId <- Xor.fromOption(
-                           maybeClientId,
-                           UnprocessableEntity(
-                               views.Application.error("Missing client_id")))
+                    maybeClientId orElse auth match {
+                        case Some((clientId, clientSecret)) => Some(clientId)
+                        case _ => None
+                    },
+                    UnprocessableEntity(
+                        views.Application.error("Missing client_id")))
             clientSecret <- Xor.fromOption(
-                               maybeClientSecret,
-                               UnprocessableEntity(views.Application.error(
-                                       "Missing client_secret")))
+                    maybeClientSecret orElse auth match {
+                      case Some((clientId, clientSecret)) => Some(clientSecret)
+                      case _ => None
+                    },
+                    UnprocessableEntity(views.Application.error(
+                            "Missing client_secret")))
             find <- Xor.fromOption(
                        clients.find(_.clientId == clientId),
                        UnprocessableEntity(
@@ -272,15 +308,19 @@ class Application(implicit val executionContext: ExecutionContext,
                            UnprocessableEntity(
                                views.Application.error("Missing password")))
             clientId <- Xor.fromOption(
-                           maybeClientId,
-                           UnprocessableEntity(
-                               views.Application.error("Missing client_id"))
-                       )
+                      maybeClientId orElse auth match {
+                          case Some((clientId, clientSecret)) => Some(clientId)
+                          case _ => None
+                      },
+                      UnprocessableEntity(
+                          views.Application.error("Missing client_id")))
             clientSecret <- Xor.fromOption(
-                               maybeClientSecret,
-                               UnprocessableEntity(views.Application.error(
-                                       "Missing client_id"))
-                           )
+                        maybeClientSecret orElse auth match {
+                          case Some((clientId, clientSecret)) => Some(clientSecret)
+                          case _ => None
+                        },
+                       UnprocessableEntity(views.Application.error(
+                               "Missing client_id")))
             checkClientId <- {
               Xor.fromOption(clients.find(_.clientId == clientId),
                              UnprocessableEntity(
