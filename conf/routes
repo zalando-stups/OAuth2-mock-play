@@ -3,7 +3,7 @@
 # ~~~~
 
 # Home page
-POST          /access_token        controllers.Application.accessToken(grant_type: Option[String], scope: Option[String], username: Option[String], password: Option[String], code: Option[String], client_id: Option[String],client_secret: Option[String] ,redirect_uri: Option[String])
+POST          /access_token        controllers.Application.accessToken
 GET           /authorize           controllers.Application.authorize(state: Option[String], redirect_uri: Option[String], response_type: Option[String], client_id: Option[String], scope: Option[String])
 POST          /accept              controllers.Application.accept()
 POST          /login               controllers.Application.login()
