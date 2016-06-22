@@ -1,8 +1,6 @@
 package controllers
 
 import java.time.LocalDateTime
-import java.time.Duration
-import java.util.concurrent._
 import sun.misc.BASE64Decoder
 
 import cats.data.Xor
