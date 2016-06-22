@@ -2,6 +2,8 @@ package controllers
 
 import java.time.LocalDateTime
 import sun.misc.BASE64Decoder
+import java.time.Duration
+import java.util.concurrent._
 
 import cats.data.Xor
 import com.typesafe.config.{Config, ConfigException}
@@ -16,6 +18,7 @@ import play.api.mvc._
 import scala.language.postfixOps
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+
 
 /** Application controller, handles authentication */
 class Application(implicit val executionContext: ExecutionContext,
@@ -220,6 +223,7 @@ class Application(implicit val executionContext: ExecutionContext,
                   accessToken,
                   LocalDateTime.now().plusNanos(expiration.toNanos),
                   TokenType.Bearer,
+                  GrantType.AuthorizationCode,
                   authorizeStore.username,
                   realm,
                   authorizeStore.scope
@@ -355,6 +359,7 @@ class Application(implicit val executionContext: ExecutionContext,
                   accessToken,
                   LocalDateTime.now().plusNanos(expiration.toNanos),
                   TokenType.Bearer,
+                  GrantType.Password,
                   username,
                   realm,
                   scopes
@@ -484,6 +489,7 @@ class Application(implicit val executionContext: ExecutionContext,
                       accessToken,
                       LocalDateTime.now().plusNanos(expiration.toNanos),
                       TokenType.Bearer,
+                      GrantType.AuthorizationCode,
                       user.username,
                       realm,
                       requestedScopes
@@ -524,6 +530,68 @@ class Application(implicit val executionContext: ExecutionContext,
       }
     }
   }
+
+  def tokeninfo(maybeToken: Option[String]) = {
+    Action {
+      val params = for {
+        token <- Xor.fromOption(
+                    maybeToken,
+                    UnprocessableEntity(views.Application.error("Missing token"))
+                )
+        authorizeStore <- {
+          for {
+            retrieve <- Xor.fromOption(
+                           authorizeStoreCache.value
+                             .get[AuthorizeStore](token),
+                           Unauthorized(
+                               views.Application.error("Invalid Token")))
+            authorizeStore <- {
+              retrieve match {
+                case a @ AuthorizeStore.Token(accessToken,
+                                 expirationDate,
+                                 tokenType,
+                                 grantType,
+                                 uid,
+                                 realm,
+                                 scope) =>
+                  if (LocalDateTime.now().isBefore(expirationDate)){
+                    Xor.right(a)
+                  }
+                  else {
+                    Xor.left(InternalServerError(
+                            views.Application.error("Token has expired")))
+                  }
+                case _ =>
+                  Xor.left(InternalServerError(
+                          views.Application.error("Internal Error")))
+              }
+            }
+          } yield (authorizeStore)
+        }
+      } yield (authorizeStore)
+
+      params match {
+        case Xor.Right((authorizeStore)) =>
+
+          val tokeninfoResponse = TokeninfoResponse(
+              authorizeStore.accessToken,
+              authorizeStore.grantType,
+              FiniteDuration(Duration.between(LocalDateTime.now(),
+                                            authorizeStore.expirationDate)
+                                            .toNanos, TimeUnit.NANOSECONDS)
+,
+
+              authorizeStore.tokenType,
+              authorizeStore.realm,
+              authorizeStore.uid,
+              authorizeStore.scope)
+
+              Ok(Json.toJson(tokeninfoResponse))
+
+        case Xor.Left(error) => error
+      }
+    }
+}
 
   val stateForm = Form(
       mapping(
@@ -618,6 +686,7 @@ class Application(implicit val executionContext: ExecutionContext,
                 accessToken,
                 LocalDateTime.now().plusNanos(expiration.toNanos),
                 TokenType.Bearer,
+                GrantType.AuthorizationCode,
                 request.body.username,
                 realm,
                 pendingConsentStore.scope
