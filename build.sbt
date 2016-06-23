@@ -2,7 +2,7 @@ name := "OAuth2-mock-play"
 
 organization in ThisBuild := "org.zalando"
 
-version := "1.0.2"
+version := "1.0.3"
 
 scalaVersion in ThisBuild := "2.11.8"
 

@@ -34,12 +34,12 @@ is running over standard HTTP rather than HTTPS.
 ## Docker Image
 
 The project is currently deployed via the Zalando open source write endpoint
-`registry-write.opensource.zalan.do/bteam/oauth2-mock-play:1.0.2`. However, the read/pull endpoint is without `-write`— namely, `registry.opensource.zalan.do/bteam/oauth2-mock-play:1.0.2`.
+`registry-write.opensource.zalan.do/bteam/oauth2-mock-play:1.0.3`. However, the read/pull endpoint is without `-write`— namely, `registry.opensource.zalan.do/bteam/oauth2-mock-play:1.0.3`.
 
 To run the Docker image, do:
 
 ```sh
-docker run -it -p 9000:9000 registry.opensource.zalan.do/bteam/oauth2-mock-play:1.0.2
+docker run -it -p 9000:9000 registry.opensource.zalan.do/bteam/oauth2-mock-play:1.0.3
 ```
 
 # Development
