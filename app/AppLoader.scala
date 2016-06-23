@@ -34,8 +34,7 @@ class AppComponents(context: Context)
   override def router: Router =
     new Routes(httpErrorHandler, applicationController, assets)
 
-  val gzipFilter = new GzipFilter(
-      shouldGzip = (request, response) => {
+  val gzipFilter = new GzipFilter(shouldGzip = (request, response) => {
     val contentType = response.header.headers.get("Content-Type")
     contentType.exists(_.startsWith("text/html")) ||
     request.path.endsWith("jsroutes.js")

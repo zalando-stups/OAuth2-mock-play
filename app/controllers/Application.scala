@@ -19,7 +19,6 @@ import scala.language.postfixOps
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
-
 /** Application controller, handles authentication */
 class Application(implicit val executionContext: ExecutionContext,
                   val pendingConsentStoreCache: PendingContentStoreCache,
@@ -74,8 +73,10 @@ class Application(implicit val executionContext: ExecutionContext,
     if (split.length == 2) {
       (split(0), split(1))
     } else {
-      throw new ConfigException.WrongType(
-          config.origin(), path, typeString, "String")
+      throw new ConfigException.WrongType(config.origin(),
+                                          path,
+                                          typeString,
+                                          "String")
     }
   }
 
@@ -96,7 +97,8 @@ class Application(implicit val executionContext: ExecutionContext,
     val usernamePassword = decodedAuthSt.split(":")
     if (usernamePassword.length >= 2) {
       //account for ":" in passwords
-      return Some((usernamePassword(0), usernamePassword.splitAt(1)._2.mkString(":")))
+      return Some(
+          (usernamePassword(0), usernamePassword.splitAt(1)._2.mkString(":")))
     }
     None
   }
@@ -138,27 +140,28 @@ class Application(implicit val executionContext: ExecutionContext,
   lazy val disableConsent = config.as[Boolean]("OAuth2.disableConsent")
 
   val accessTokenForm = Form(
-    tuple(
-      "grant_type" -> optional(text),
-      "scope" -> optional(text),
-      "username" -> optional(text),
-      "password" -> optional(text),
-      "code" -> optional(text),
-      "client_id" -> optional(text),
-      "client_secret" -> optional(text),
-      "redirect_uri" -> optional(text)
-    )
+      tuple(
+          "grant_type" -> optional(text),
+          "scope" -> optional(text),
+          "username" -> optional(text),
+          "password" -> optional(text),
+          "code" -> optional(text),
+          "client_id" -> optional(text),
+          "client_secret" -> optional(text),
+          "redirect_uri" -> optional(text)
+      )
   )
   def accessToken = {
-    Action {implicit request =>
+    Action { implicit request =>
       val (maybeGrantType: Option[String],
-          maybeScope: Option[String],
-          maybeUsername: Option[String],
-          maybePassword: Option[String],
-          maybeCode: Option[String],
-          maybeClientId: Option[String],
-          maybeClientSecret: Option[String],
-          maybeRedirectUri: Option[String]) = accessTokenForm.bindFromRequest.get
+           maybeScope: Option[String],
+           maybeUsername: Option[String],
+           maybePassword: Option[String],
+           maybeCode: Option[String],
+           maybeClientId: Option[String],
+           maybeClientSecret: Option[String],
+           maybeRedirectUri: Option[String]) =
+        accessTokenForm.bindFromRequest.get
       val auth = request.headers.get("authorization").flatMap(decodeBasicAuth)
       maybeGrantType match {
         case Some("authorization_code") =>
@@ -168,23 +171,26 @@ class Application(implicit val executionContext: ExecutionContext,
                        UnprocessableEntity(
                            views.Application.error("Missing code")))
             clientId <- Xor.fromOption(
-                        maybeClientId orElse auth match {
-                            case Some((clientId, clientSecret)) => Some(clientId)
-                            case _ => None
-                        },
-                        UnprocessableEntity(views.Application.error(
-                              "Missing client_id")))
+                           maybeClientId orElse auth match {
+                             case Some((clientId, clientSecret)) =>
+                               Some(clientId)
+                             case _ => None
+                           },
+                           UnprocessableEntity(
+                               views.Application.error("Missing client_id")))
             clientSecret <- Xor.fromOption(
-                    maybeClientSecret orElse auth match {
-                      case Some((clientId, clientSecret)) => Some(clientSecret)
-                      case _ => None
-                    },
-                    UnprocessableEntity(views.Application.error(
-                          "Missing client_secret")))
-            redirectUri <- Xor.fromOption(
-                              maybeRedirectUri,
-                              UnprocessableEntity(views.Application.error(
-                                      "Missing redirect_uri")))
+                               maybeClientSecret orElse auth match {
+                                 case Some((clientId, clientSecret)) =>
+                                   Some(clientSecret)
+                                 case _ => None
+                               },
+                               UnprocessableEntity(
+                                   views.Application.error(
+                                       "Missing client_secret")))
+            redirectUri <- Xor.fromOption(maybeRedirectUri,
+                                          UnprocessableEntity(
+                                              views.Application.error(
+                                                  "Missing redirect_uri")))
             authorizeStore <- {
               for {
                 retrieve <- Xor.fromOption(
@@ -203,11 +209,13 @@ class Application(implicit val executionContext: ExecutionContext,
                           redirectUriStore == redirectUri) {
                         Xor.right(a)
                       } else {
-                        Xor.left(Forbidden(
+                        Xor.left(
+                            Forbidden(
                                 views.Application.error("Security error")))
                       }
                     case _ =>
-                      Xor.left(InternalServerError(
+                      Xor.left(
+                          InternalServerError(
                               views.Application.error("Internal Error")))
                   }
                 }
@@ -230,8 +238,8 @@ class Application(implicit val executionContext: ExecutionContext,
               )
 
               authorizeStoreCache.value.remove(code)
-              authorizeStoreCache.value.set(
-                  accessToken, secondAuthorizeStore, expiration)
+              authorizeStoreCache.value
+                .set(accessToken, secondAuthorizeStore, expiration)
 
               val accessTokenResponse = AccessTokenResponse(
                   accessToken,
@@ -255,19 +263,22 @@ class Application(implicit val executionContext: ExecutionContext,
         case Some("client_credentials") =>
           val params = for {
             clientId <- Xor.fromOption(
-                    maybeClientId orElse auth match {
-                        case Some((clientId, clientSecret)) => Some(clientId)
-                        case _ => None
-                    },
-                    UnprocessableEntity(
-                        views.Application.error("Missing client_id")))
+                           maybeClientId orElse auth match {
+                             case Some((clientId, clientSecret)) =>
+                               Some(clientId)
+                             case _ => None
+                           },
+                           UnprocessableEntity(
+                               views.Application.error("Missing client_id")))
             clientSecret <- Xor.fromOption(
-                    maybeClientSecret orElse auth match {
-                      case Some((clientId, clientSecret)) => Some(clientSecret)
-                      case _ => None
-                    },
-                    UnprocessableEntity(views.Application.error(
-                            "Missing client_secret")))
+                               maybeClientSecret orElse auth match {
+                                 case Some((clientId, clientSecret)) =>
+                                   Some(clientSecret)
+                                 case _ => None
+                               },
+                               UnprocessableEntity(
+                                   views.Application.error(
+                                       "Missing client_secret")))
             find <- Xor.fromOption(
                        clients.find(_.clientId == clientId),
                        UnprocessableEntity(
@@ -312,19 +323,22 @@ class Application(implicit val executionContext: ExecutionContext,
                            UnprocessableEntity(
                                views.Application.error("Missing password")))
             clientId <- Xor.fromOption(
-                      maybeClientId orElse auth match {
-                          case Some((clientId, clientSecret)) => Some(clientId)
-                          case _ => None
-                      },
-                      UnprocessableEntity(
-                          views.Application.error("Missing client_id")))
+                           maybeClientId orElse auth match {
+                             case Some((clientId, clientSecret)) =>
+                               Some(clientId)
+                             case _ => None
+                           },
+                           UnprocessableEntity(
+                               views.Application.error("Missing client_id")))
             clientSecret <- Xor.fromOption(
-                        maybeClientSecret orElse auth match {
-                          case Some((clientId, clientSecret)) => Some(clientSecret)
-                          case _ => None
-                        },
-                       UnprocessableEntity(views.Application.error(
-                               "Missing client_id")))
+                               maybeClientSecret orElse auth match {
+                                 case Some((clientId, clientSecret)) =>
+                                   Some(clientSecret)
+                                 case _ => None
+                               },
+                               UnprocessableEntity(
+                                   views.Application.error(
+                                       "Missing client_id")))
             checkClientId <- {
               Xor.fromOption(clients.find(_.clientId == clientId),
                              UnprocessableEntity(
@@ -365,8 +379,8 @@ class Application(implicit val executionContext: ExecutionContext,
                   scopes
               )
 
-              authorizeStoreCache.value.set(
-                  accessToken, authorizeStore, expiration)
+              authorizeStoreCache.value
+                .set(accessToken, authorizeStore, expiration)
 
               val accessTokenResponse = AccessTokenResponse(
                   accessToken,
@@ -377,9 +391,10 @@ class Application(implicit val executionContext: ExecutionContext,
                   TokenType.Bearer
               )
 
-              Ok(generateAuthorizationResponse(accessTokenResponse,
-                                               authorizeStore.scope,
-                                               Option(username)))
+              Ok(
+                  generateAuthorizationResponse(accessTokenResponse,
+                                                authorizeStore.scope,
+                                                Option(username)))
 
             case Xor.Left(error) => error
           }
@@ -411,10 +426,12 @@ class Application(implicit val executionContext: ExecutionContext,
                        case Some("token") => Xor.right(ResponseType.Token)
                        case Some("code") => Xor.right(ResponseType.Code)
                        case Some(_) =>
-                         Xor.left(UnprocessableEntity(views.Application.error(
+                         Xor.left(
+                             UnprocessableEntity(views.Application.error(
                                      "Invalid response_type")))
                        case _ =>
-                         Xor.left(UnprocessableEntity(views.Application.error(
+                         Xor.left(
+                             UnprocessableEntity(views.Application.error(
                                      "Missing response_type")))
                      }
       clientId <- {
@@ -444,7 +461,8 @@ class Application(implicit val executionContext: ExecutionContext,
             }) {
           Xor.Right(requestedScopes)
         } else {
-          Xor.Left(UnprocessableEntity(
+          Xor.Left(
+              UnprocessableEntity(
                   views.Application.error("Requested scope doesn't exist")))
         }
       }
@@ -467,44 +485,45 @@ class Application(implicit val executionContext: ExecutionContext,
                     import com.netaporter.uri.dsl._
                     val code = java.util.UUID.randomUUID().toString
                     val authorizeStore = AuthorizeStore.Code(
-                      state,
-                      clientId,
-                      redirectUri,
-                      user.username,
-                      requestedScopes
+                        state,
+                        clientId,
+                        redirectUri,
+                        user.username,
+                        requestedScopes
                     )
 
-                    authorizeStoreCache.value.set(
-                      code, authorizeStore, internalRedirectTimeout)
+                    authorizeStoreCache.value
+                      .set(code, authorizeStore, internalRedirectTimeout)
 
                     val url = (redirectUri ?
-                      ("code" -> code) ?
-                      ("state" -> state)).toString()
+                          ("code" -> code) ?
+                          ("state" -> state)).toString()
 
                     Redirect(url, MOVED_PERMANENTLY)
                   case ResponseType.Token =>
                     import com.netaporter.uri.dsl._
                     val accessToken = java.util.UUID.randomUUID.toString
                     val authorizeStore = AuthorizeStore.Token(
-                      accessToken,
-                      LocalDateTime.now().plusNanos(expiration.toNanos),
-                      TokenType.Bearer,
-                      GrantType.AuthorizationCode,
-                      user.username,
-                      realm,
-                      requestedScopes
+                        accessToken,
+                        LocalDateTime.now().plusNanos(expiration.toNanos),
+                        TokenType.Bearer,
+                        GrantType.AuthorizationCode,
+                        user.username,
+                        realm,
+                        requestedScopes
                     )
 
-                    authorizeStoreCache.value.set(
-                      accessToken, authorizeStore, internalRedirectTimeout)
+                    authorizeStoreCache.value.set(accessToken,
+                                                  authorizeStore,
+                                                  internalRedirectTimeout)
 
                     val url = com.netaporter.uri.Uri
                       .parse(redirectUri)
                       .withFragment(
-                        ("token" -> accessToken) ?
-                          ("expires_in" -> expiration.toSeconds.toString) ?
-                          ("token_type" -> TokenType.Bearer.id) ?
-                          ("state" -> state)
+                          ("token" -> accessToken) ?
+                            ("expires_in" -> expiration.toSeconds.toString) ?
+                            ("token_type" -> TokenType.Bearer.id) ?
+                            ("state" -> state)
                       )
                       .toString()
 
@@ -515,17 +534,18 @@ class Application(implicit val executionContext: ExecutionContext,
             }
           } else {
             val authorizeQuery = PendingConsentStore(
-              state,
-              redirectUri,
-              responseType,
-              clientId,
-              requestedScopes
+                state,
+                redirectUri,
+                responseType,
+                clientId,
+                requestedScopes
             )
-            pendingConsentStoreCache.value.set(
-              state, authorizeQuery, pendingConsentTimeout)
+            pendingConsentStoreCache.value
+              .set(state, authorizeQuery, pendingConsentTimeout)
 
-            Ok(views.Application.consent(
-              requestedScopes, state, scopeRequestDelimiter))
+            Ok(
+                views.Application
+                  .consent(requestedScopes, state, scopeRequestDelimiter))
           }
       }
     }
@@ -536,7 +556,8 @@ class Application(implicit val executionContext: ExecutionContext,
       val params = for {
         token <- Xor.fromOption(
                     maybeToken,
-                    UnprocessableEntity(views.Application.error("Missing token"))
+                    UnprocessableEntity(
+                        views.Application.error("Missing token"))
                 )
         authorizeStore <- {
           for {
@@ -548,21 +569,22 @@ class Application(implicit val executionContext: ExecutionContext,
             authorizeStore <- {
               retrieve match {
                 case a @ AuthorizeStore.Token(accessToken,
-                                 expirationDate,
-                                 tokenType,
-                                 grantType,
-                                 uid,
-                                 realm,
-                                 scope) =>
-                  if (LocalDateTime.now().isBefore(expirationDate)){
+                                              expirationDate,
+                                              tokenType,
+                                              grantType,
+                                              uid,
+                                              realm,
+                                              scope) =>
+                  if (LocalDateTime.now().isBefore(expirationDate)) {
                     Xor.right(a)
-                  }
-                  else {
-                    Xor.left(InternalServerError(
+                  } else {
+                    Xor.left(
+                        InternalServerError(
                             views.Application.error("Token has expired")))
                   }
                 case _ =>
-                  Xor.left(InternalServerError(
+                  Xor.left(
+                      InternalServerError(
                           views.Application.error("Internal Error")))
               }
             }
@@ -572,26 +594,25 @@ class Application(implicit val executionContext: ExecutionContext,
 
       params match {
         case Xor.Right((authorizeStore)) =>
-
           val tokeninfoResponse = TokeninfoResponse(
               authorizeStore.accessToken,
               authorizeStore.grantType,
-              FiniteDuration(Duration.between(LocalDateTime.now(),
-                                            authorizeStore.expirationDate)
-                                            .toNanos, TimeUnit.NANOSECONDS)
-,
-
+              FiniteDuration(Duration
+                               .between(LocalDateTime.now(),
+                                        authorizeStore.expirationDate)
+                               .toNanos,
+                             TimeUnit.NANOSECONDS),
               authorizeStore.tokenType,
               authorizeStore.realm,
               authorizeStore.uid,
               authorizeStore.scope)
 
-              Ok(Json.toJson(tokeninfoResponse))
+          Ok(Json.toJson(tokeninfoResponse))
 
         case Xor.Left(error) => error
       }
     }
-}
+  }
 
   val stateForm = Form(
       mapping(
@@ -651,7 +672,7 @@ class Application(implicit val executionContext: ExecutionContext,
       pendingConsentStore <- Xor.fromOption(
                                 pendingConsentStoreCache.value
                                   .get[PendingConsentStore](
-                                    request.body.state),
+                                      request.body.state),
                                 Unauthorized(
                                     views.Application.error("Invalid Login"))
                             )
@@ -672,12 +693,12 @@ class Application(implicit val executionContext: ExecutionContext,
                 pendingConsentStore.scope
             )
 
-            authorizeStoreCache.value.set(
-                code, authorizeStore, internalRedirectTimeout)
+            authorizeStoreCache.value
+              .set(code, authorizeStore, internalRedirectTimeout)
 
             val url = (pendingConsentStore.redirectUri ?
-                ("code" -> code) ?
-                ("state" -> pendingConsentStore.state)).toString()
+                  ("code" -> code) ?
+                  ("state" -> pendingConsentStore.state)).toString()
 
             Redirect(url, MOVED_PERMANENTLY)
           case ResponseType.Token =>
@@ -692,16 +713,16 @@ class Application(implicit val executionContext: ExecutionContext,
                 pendingConsentStore.scope
             )
 
-            authorizeStoreCache.value.set(
-                accessToken, authorizeStore, internalRedirectTimeout)
+            authorizeStoreCache.value
+              .set(accessToken, authorizeStore, internalRedirectTimeout)
 
             val url = com.netaporter.uri.Uri
               .parse(pendingConsentStore.redirectUri)
               .withFragment(
                   ("token" -> accessToken) ?
-                  ("expires_in" -> expiration.toSeconds.toString) ?
-                  ("token_type" -> TokenType.Bearer.id) ?
-                  ("state" -> pendingConsentStore.state)
+                    ("expires_in" -> expiration.toSeconds.toString) ?
+                    ("token_type" -> TokenType.Bearer.id) ?
+                    ("state" -> pendingConsentStore.state)
               )
               .toString()
 
