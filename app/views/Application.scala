@@ -17,8 +17,9 @@ object Application {
     )
   }
 
-  def consent(
-      scopes: List[String], state: String, scopeDelimiter: String): Frag = {
+  def consent(scopes: List[String],
+              state: String,
+              scopeDelimiter: String): Frag = {
     scalatags.Text.tags.html(
         head(
             title := "Consent"
@@ -61,10 +62,10 @@ object Application {
             div(
                 form(action := "/login", method := "POST")(
                     input(name := "state", `type` := "hidden", value := state),
-                    label(`for`:="username")("Username: "),
+                    label(`for` := "username")("Username: "),
                     input(name := "username", `type` := "text"),
                     br,
-                    label(`for`:="password")("Password: "),
+                    label(`for` := "password")("Password: "),
                     input(name := "password", `type` := "password"),
                     br,
                     button(`type` := "submit")(

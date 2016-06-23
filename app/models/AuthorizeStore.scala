@@ -5,7 +5,6 @@ import play.api.cache.CacheApi
 
 case class AuthorizeStoreCache(value: CacheApi) extends AnyVal
 
-
 sealed abstract class AuthorizeStore
 
 object AuthorizeStore {
@@ -22,5 +21,6 @@ object AuthorizeStore {
                   clientId: String,
                   redirectUri: String,
                   username: String,
-                  scope: List[String]) extends AuthorizeStore
+                  scope: List[String])
+      extends AuthorizeStore
 }
