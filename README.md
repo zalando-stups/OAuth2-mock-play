@@ -42,6 +42,13 @@ To run the Docker image, do:
 docker run -it -p 9000:9000 registry.opensource.zalan.do/bteam/oauth2-mock-play:1.0.2
 ```
 
+# Development
+
+## Code Formatting
+
+The project is formatted with [scalafmt](https://github.com/olafurpg/scalafmt). Please make sure you run
+scalafmt in sbt before you make a commit.
+
 ## License
 
 The MIT License (MIT) Copyright © 2016 Zalando SE, https://tech.zalando.com
