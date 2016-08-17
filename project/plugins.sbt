@@ -14,4 +14,4 @@ addSbtPlugin("com.typesafe.sbt" % "sbt-gzip" % "1.0.0")
 // plugin for docker
 addSbtPlugin("se.marcuslonnberg" % "sbt-docker" % "1.4.0")
 
-addSbtPlugin("com.geirsson" % "sbt-scalafmt" % "0.2.6")
+addSbtPlugin("com.geirsson" % "sbt-scalafmt" % "0.3.0")
