@@ -1,6 +1,6 @@
 # OAuth2 Mock Play Server
 
-OAuth2 Mock Play Server is an implementation of an OAuth2 server for mocking/testing. It's designed to be configurable by environment variables (by use of the Typesafe config), so it's easy to configure the mock to suite your application's needs. With OAuth2 Mock Play Server, all you have to do is run the server and configure your application's OAuth2 endpoints to the mock server. 
+OAuth2 Mock Play Server is an implementation of an OAuth2 server for mocking/testing. It's designed to be configurable by environment variables (by use of the Typesafe config), so it's easy to configure the mock to suit your application's needs. With OAuth2 Mock Play Server, all you have to do is run the server and configure your application's OAuth2 endpoints to the mock server. 
 
 ##Project Intro
 OAuth2 Mock Play Server exists out of necessity: The project author searched for an easily configurable, open-source OAuth2 mock server that supported all of the different login flows specified by the OAuth2 specification, and didn't find one. With that in mind, you might also find this project useful, especially if you're creating a web application gated by an OAuth login and need testing and local development support. Typically, you have to explicitly code a flag to disable OAuth2 in your application, or use a production OAuth2 server and deal with port forwarding, reverse proxying, and generating fake certificates to get redirects working.
