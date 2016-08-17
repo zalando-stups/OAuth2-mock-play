@@ -2,7 +2,7 @@ name := "OAuth2-mock-play"
 
 organization in ThisBuild := "org.zalando"
 
-version := "1.0.3"
+version := "1.0.4-SNAPSHOT"
 
 scalaVersion in ThisBuild := "2.11.8"
 
@@ -14,16 +14,19 @@ lazy val root = (project in file(".")).enablePlugins(PlayScala)
 libraryDependencies ++= Seq(
   filters,
   cache,
-  "com.iheart" %% "ficus" % "1.2.6",
-  "com.lihaoyi" %% "scalatags" % "0.5.5",
-  "org.typelevel" %% "cats" % "0.6.0",
+  "com.iheart"     %% "ficus"     % "1.2.6",
+  "com.lihaoyi"    %% "scalatags" % "0.5.5",
+  "org.typelevel"  %% "cats"      % "0.6.0",
   "com.netaporter" %% "scala-uri" % "0.4.14"
 )
+
+scalafmtConfig in ThisBuild := Some(file(".scalafmt"))
 
 // Scala Compiler Options
 scalacOptions in ThisBuild ++= Seq(
   "-target:jvm-1.8",
-  "-encoding", "UTF-8",
+  "-encoding",
+  "UTF-8",
   "-deprecation", // warning and location for usages of deprecated APIs
   "-feature", // warning and location for usages of features that should be imported explicitly
   "-unchecked", // additional warnings where generated code depends on assumptions
@@ -67,7 +70,7 @@ enablePlugins(sbtdocker.DockerPlugin, JavaAppPackaging)
 
 dockerfile in docker := {
   val appDir: File = stage.value
-  val targetDir = "/app"
+  val targetDir    = "/app"
 
   new Dockerfile {
     from("java")
@@ -78,13 +81,13 @@ dockerfile in docker := {
 
 //Docker specific settings
 
-packageName in Docker   := name.value
-dockerExposedPorts      := Seq(9000)
+packageName in Docker := name.value
+dockerExposedPorts := Seq(9000)
 
 imageNames in docker := Seq({
   val namespace = Option("bteam")
-  val name = Keys.normalizedName.value
-  val tag = Some(version.value)
+  val name      = Keys.normalizedName.value
+  val tag       = Some(version.value)
 
   ImageName(Option("registry-write.opensource.zalan.do"), namespace, name, tag)
 })
