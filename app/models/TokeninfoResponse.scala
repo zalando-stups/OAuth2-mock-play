@@ -14,15 +14,15 @@ case class TokeninfoResponse(accessToken: String,
 
 object TokeninfoResponse {
   implicit val tokeninfoResponseWrites: Writes[TokeninfoResponse] = Writes(
-      (tokeninfoResponse: TokeninfoResponse) =>
-        Json.obj(
-            "access_token" -> tokeninfoResponse.accessToken,
-            "grant_type" -> tokeninfoResponse.grantType.id,
-            "expires_in" -> tokeninfoResponse.expiresIn.toSeconds,
-            "scope" -> tokeninfoResponse.scope,
-            "realm" -> tokeninfoResponse.realm,
-            "token_type" -> tokeninfoResponse.tokenType.id,
-            "uid" -> tokeninfoResponse.uid
-      )
+    (tokeninfoResponse: TokeninfoResponse) =>
+      Json.obj(
+        "access_token" -> tokeninfoResponse.accessToken,
+        "grant_type"   -> tokeninfoResponse.grantType.id,
+        "expires_in"   -> tokeninfoResponse.expiresIn.toSeconds,
+        "scope"        -> tokeninfoResponse.scope,
+        "realm"        -> tokeninfoResponse.realm,
+        "token_type"   -> tokeninfoResponse.tokenType.id,
+        "uid"          -> tokeninfoResponse.uid
+    )
   )
 }

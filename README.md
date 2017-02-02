@@ -1,3 +1,4 @@
+
 # OAuth2 Mock Play Server
 
 OAuth2 Mock Play Server is an implementation of an OAuth2 server for mocking/testing. It's designed to be configurable by environment variables (by use of the Typesafe config), so it's easy to configure the mock to suit your application's needs. With OAuth2 Mock Play Server, all you have to do is run the server and configure your application's OAuth2 endpoints to the mock server. 
@@ -34,12 +35,12 @@ is running over standard HTTP rather than HTTPS.
 ## Docker Image
 
 The project is currently deployed via the Zalando open source write endpoint
-`registry-write.opensource.zalan.do/bteam/oauth2-mock-play:1.0.3`. However, the read/pull endpoint is without `-write`— namely, `registry.opensource.zalan.do/bteam/oauth2-mock-play:1.0.3`.
+`registry-write.opensource.zalan.do/opensource/oauth2-mock-play:1.0.3`. However, the read/pull endpoint is without `-write`— namely, `registry.opensource.zalan.do/opensource/oauth2-mock-play:1.0.3`.
 
 To run the Docker image, do:
 
 ```sh
-docker run -it -p 9000:9000 registry.opensource.zalan.do/bteam/oauth2-mock-play:1.0.3
+docker run -it -p 9000:9000 registry.opensource.zalan.do/opensource/oauth2-mock-play:1.0.3
 ```
 
 # Development

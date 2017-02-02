@@ -14,13 +14,11 @@ lazy val root = (project in file(".")).enablePlugins(PlayScala)
 libraryDependencies ++= Seq(
   filters,
   cache,
-  "com.iheart"     %% "ficus"     % "1.2.6",
-  "com.lihaoyi"    %% "scalatags" % "0.5.5",
-  "org.typelevel"  %% "cats"      % "0.6.0",
-  "com.netaporter" %% "scala-uri" % "0.4.14"
+  "com.iheart"     %% "ficus"     % "1.4.0",
+  "com.lihaoyi"    %% "scalatags" % "0.6.1",
+  "org.typelevel"  %% "cats"      % "0.9.0",
+  "com.netaporter" %% "scala-uri" % "0.4.16"
 )
-
-scalafmtConfig in ThisBuild := Some(file(".scalafmt"))
 
 // Scala Compiler Options
 scalacOptions in ThisBuild ++= Seq(
@@ -85,7 +83,7 @@ packageName in Docker := name.value
 dockerExposedPorts := Seq(9000)
 
 imageNames in docker := Seq({
-  val namespace = Option("bteam")
+  val namespace = Option("opensource")
   val name      = Keys.normalizedName.value
   val tag       = Some(version.value)
 

@@ -5,7 +5,6 @@ import sun.misc.BASE64Decoder
 import java.time.Duration
 import java.util.concurrent._
 
-import cats.data.Xor
 import com.typesafe.config.{Config, ConfigException}
 import models._
 import net.ceedubs.ficus.Ficus._
@@ -18,6 +17,7 @@ import play.api.mvc._
 import scala.language.postfixOps
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import cats.syntax.either._
 
 /** Application controller, handles authentication */
 class Application(implicit val executionContext: ExecutionContext,
@@ -46,29 +46,29 @@ class Application(implicit val executionContext: ExecutionContext,
     }
 
     val mapData: Seq[(String, JsValueWrapper)] =
-      (uidScope ++ customScopeData).filter { scopeData =>
-        requestedUserScopes.contains(scopeData.scope) && {
-          // Whitelist of keys we don't want to override
-          !List("access_token",
-                "expires_in",
-                "scope",
-                "grant_type",
-                "token_type",
-                "realm").contains(scopeData.scope)
+      (uidScope ++ customScopeData)
+        .filter { scopeData =>
+          requestedUserScopes.contains(scopeData.scope) && {
+            // Whitelist of keys we don't want to override
+            !List("access_token",
+                  "expires_in",
+                  "scope",
+                  "grant_type",
+                  "token_type",
+                  "realm").contains(scopeData.scope)
+          }
         }
-      }.flatMap {
-        case scopeData =>
-          Seq((scopeData.scope, JsString(scopeData.value): JsValueWrapper))
-      }
+        .flatMap(scopeData =>
+          Seq((scopeData.scope, JsString(scopeData.value): JsValueWrapper)))
 
     Json.toJson(accessTokenResponse) match {
       case j: JsObject => j ++ Json.obj(mapData: _*)
-      case j => j
+      case j           => j
     }
   }
 
   def deliminatedReader(config: Config, path: String, typeString: String) = {
-    val s = config.getString(path)
+    val s     = config.getString(path)
     val split = s.split(":")
     if (split.length == 2) {
       (split(0), split(1))
@@ -92,13 +92,13 @@ class Application(implicit val executionContext: ExecutionContext,
     }
     val basicAuthSt = auth.replaceFirst(basicReqSt, "")
     //BESE64Decoder is not thread safe, don't make it a field of this object
-    val decoder = new BASE64Decoder()
-    val decodedAuthSt = new String(decoder.decodeBuffer(basicAuthSt), "UTF-8")
+    val decoder          = new BASE64Decoder()
+    val decodedAuthSt    = new String(decoder.decodeBuffer(basicAuthSt), "UTF-8")
     val usernamePassword = decodedAuthSt.split(":")
     if (usernamePassword.length >= 2) {
       //account for ":" in passwords
       return Some(
-          (usernamePassword(0), usernamePassword.splitAt(1)._2.mkString(":")))
+        (usernamePassword(0), usernamePassword.splitAt(1)._2.mkString(":")))
     }
     None
   }
@@ -107,7 +107,7 @@ class Application(implicit val executionContext: ExecutionContext,
     new ValueReader[ClientCredential] {
       def read(config: Config, path: String): ClientCredential = {
         ClientCredential.tupled(
-            deliminatedReader(config, path, "models.ClientCredential"))
+          deliminatedReader(config, path, "models.ClientCredential"))
       }
     }
 
@@ -129,8 +129,8 @@ class Application(implicit val executionContext: ExecutionContext,
   lazy val clients =
     config.as[List[ClientCredential]]("OAuth2.applicationCredentials")
   lazy val expiration = config.as[FiniteDuration]("OAuth2.expiration")
-  lazy val users = config.as[List[UserDetail]]("OAuth2.users")
-  lazy val realm = config.as[String]("OAuth2.realm")
+  lazy val users      = config.as[List[UserDetail]]("OAuth2.users")
+  lazy val realm      = config.as[String]("OAuth2.realm")
   lazy val customScopeData =
     config.as[Seq[ScopeData]]("OAuth2.customScopeData")
   lazy val internalRedirectTimeout =
@@ -140,16 +140,16 @@ class Application(implicit val executionContext: ExecutionContext,
   lazy val disableConsent = config.as[Boolean]("OAuth2.disableConsent")
 
   val accessTokenForm = Form(
-      tuple(
-          "grant_type" -> optional(text),
-          "scope" -> optional(text),
-          "username" -> optional(text),
-          "password" -> optional(text),
-          "code" -> optional(text),
-          "client_id" -> optional(text),
-          "client_secret" -> optional(text),
-          "redirect_uri" -> optional(text)
-      )
+    tuple(
+      "grant_type"    -> optional(text),
+      "scope"         -> optional(text),
+      "username"      -> optional(text),
+      "password"      -> optional(text),
+      "code"          -> optional(text),
+      "client_id"     -> optional(text),
+      "client_secret" -> optional(text),
+      "redirect_uri"  -> optional(text)
+    )
   )
   def accessToken = {
     Action { implicit request =>
@@ -166,38 +166,33 @@ class Application(implicit val executionContext: ExecutionContext,
       maybeGrantType match {
         case Some("authorization_code") =>
           val params = for {
-            code <- Xor.fromOption(
-                       maybeCode,
-                       UnprocessableEntity(
-                           views.Application.error("Missing code")))
-            clientId <- Xor.fromOption(
-                           maybeClientId orElse auth match {
-                             case Some((clientId, clientSecret)) =>
-                               Some(clientId)
-                             case _ => None
-                           },
-                           UnprocessableEntity(
-                               views.Application.error("Missing client_id")))
-            clientSecret <- Xor.fromOption(
-                               maybeClientSecret orElse auth match {
-                                 case Some((clientId, clientSecret)) =>
-                                   Some(clientSecret)
-                                 case _ => None
-                               },
-                               UnprocessableEntity(
-                                   views.Application.error(
-                                       "Missing client_secret")))
-            redirectUri <- Xor.fromOption(maybeRedirectUri,
-                                          UnprocessableEntity(
-                                              views.Application.error(
-                                                  "Missing redirect_uri")))
+            code <- maybeCode.toRight(
+              UnprocessableEntity(views.Application.error("Missing code")))
+            clientId <- {
+              (maybeClientId orElse auth match {
+                case Some((clientId, clientSecret)) =>
+                  Some(clientId)
+                case _ => None
+              }).toRight(UnprocessableEntity(
+                views.Application.error("Missing client_id")))
+            }
+            clientSecret <- {
+              (maybeClientSecret orElse auth match {
+                case Some((clientId, clientSecret)) =>
+                  Some(clientSecret)
+                case _ => None
+              }).toRight(UnprocessableEntity(
+                views.Application.error("Missing client_secret")))
+            }
+            redirectUri <- maybeRedirectUri.toRight(
+              UnprocessableEntity(
+                views.Application.error("Missing redirect_uri")))
             authorizeStore <- {
               for {
-                retrieve <- Xor.fromOption(
-                               authorizeStoreCache.value
-                                 .get[AuthorizeStore](code),
-                               Unauthorized(
-                                   views.Application.error("Invalid Login")))
+                retrieve <- authorizeStoreCache.value
+                  .get[AuthorizeStore](code)
+                  .toRight(
+                    Unauthorized(views.Application.error("Invalid Login")))
                 authorizeStore <- {
                   retrieve match {
                     case a @ AuthorizeStore.Code(state,
@@ -207,16 +202,15 @@ class Application(implicit val executionContext: ExecutionContext,
                                                  scope) =>
                       if (clientIdStore == clientId &&
                           redirectUriStore == redirectUri) {
-                        Xor.right(a)
+                        Right(a)
                       } else {
-                        Xor.left(
-                            Forbidden(
-                                views.Application.error("Security error")))
+                        Left(
+                          Forbidden(views.Application.error("Security error")))
                       }
                     case _ =>
-                      Xor.left(
-                          InternalServerError(
-                              views.Application.error("Internal Error")))
+                      Left(
+                        InternalServerError(
+                          views.Application.error("Internal Error")))
                   }
                 }
               } yield authorizeStore
@@ -224,17 +218,17 @@ class Application(implicit val executionContext: ExecutionContext,
           } yield (code, clientId, clientSecret, redirectUri, authorizeStore)
 
           params match {
-            case Xor.Right(
+            case Right(
                 (code, clientId, clientSecret, redirectUri, authorizeStore)) =>
               val accessToken = java.util.UUID.randomUUID.toString
               val secondAuthorizeStore = AuthorizeStore.Token(
-                  accessToken,
-                  LocalDateTime.now().plusNanos(expiration.toNanos),
-                  TokenType.Bearer,
-                  GrantType.AuthorizationCode,
-                  authorizeStore.username,
-                  realm,
-                  authorizeStore.scope
+                accessToken,
+                LocalDateTime.now().plusNanos(expiration.toNanos),
+                TokenType.Bearer,
+                GrantType.AuthorizationCode,
+                authorizeStore.username,
+                realm,
+                authorizeStore.scope
               )
 
               authorizeStoreCache.value.remove(code)
@@ -242,161 +236,157 @@ class Application(implicit val executionContext: ExecutionContext,
                 .set(accessToken, secondAuthorizeStore, expiration)
 
               val accessTokenResponse = AccessTokenResponse(
-                  accessToken,
-                  expiration,
-                  authorizeStore.scope,
-                  GrantType.AuthorizationCode,
-                  realm,
-                  TokenType.Bearer
+                accessToken,
+                expiration,
+                authorizeStore.scope,
+                GrantType.AuthorizationCode,
+                realm,
+                TokenType.Bearer
               )
 
               Ok(
-                  generateAuthorizationResponse(
-                      accessTokenResponse,
-                      authorizeStore.scope,
-                      Option(authorizeStore.username)))
+                generateAuthorizationResponse(accessTokenResponse,
+                                              authorizeStore.scope,
+                                              Option(authorizeStore.username)))
 
-            case Xor.Left(error) =>
+            case Left(error) =>
               error
           }
 
         case Some("client_credentials") =>
           val params = for {
-            clientId <- Xor.fromOption(
-                           maybeClientId orElse auth match {
-                             case Some((clientId, clientSecret)) =>
-                               Some(clientId)
-                             case _ => None
-                           },
-                           UnprocessableEntity(
-                               views.Application.error("Missing client_id")))
-            clientSecret <- Xor.fromOption(
-                               maybeClientSecret orElse auth match {
-                                 case Some((clientId, clientSecret)) =>
-                                   Some(clientSecret)
-                                 case _ => None
-                               },
-                               UnprocessableEntity(
-                                   views.Application.error(
-                                       "Missing client_secret")))
-            find <- Xor.fromOption(
-                       clients.find(_.clientId == clientId),
-                       UnprocessableEntity(
-                           views.Application.error("Invalid client_id")))
+            clientId <- {
+              (maybeClientId orElse auth match {
+                case Some((clientId, clientSecret)) =>
+                  Some(clientId)
+                case _ => None
+              }).toRight(UnprocessableEntity(
+                views.Application.error("Missing client_id")))
+            }
+            clientSecret <- {
+              (maybeClientSecret orElse auth match {
+                case Some((clientId, clientSecret)) =>
+                  Some(clientSecret)
+                case _ => None
+              }).toRight(UnprocessableEntity(
+                views.Application.error("Missing client_secret")))
+            }
+            find <- {
+              clients
+                .find(_.clientId == clientId)
+                .toRight(
+                  UnprocessableEntity(
+                    views.Application.error("Invalid client_id"))
+                )
+            }
             checkSecret <- {
               if (find.clientSecret == clientSecret) {
-                Xor.right(clientId)
+                Right(clientId)
               } else {
-                Xor.left(
-                    Unauthorized(views.Application.error("Invalid details")))
+                Left(Unauthorized(views.Application.error("Invalid details")))
               }
             }
           } yield clientId
 
           params match {
-            case Xor.Right(clientId) =>
+            case Right(clientId) =>
               val accessToken = java.util.UUID.randomUUID.toString
 
               val accessTokenResponse = AccessTokenResponse(
-                  accessToken,
-                  expiration,
-                  List.empty,
-                  GrantType.ClientCredentials,
-                  realm,
-                  TokenType.Bearer
+                accessToken,
+                expiration,
+                List.empty,
+                GrantType.ClientCredentials,
+                realm,
+                TokenType.Bearer
               )
 
               Ok(Json.toJson(accessTokenResponse))
 
-            case Xor.Left(error) =>
+            case Left(error) =>
               error
           }
 
         case Some("password") =>
           val params = for {
-            username <- Xor.fromOption(
-                           maybeUsername,
-                           UnprocessableEntity(
-                               views.Application.error("Missing username")))
-            password <- Xor.fromOption(
-                           maybePassword,
-                           UnprocessableEntity(
-                               views.Application.error("Missing password")))
-            clientId <- Xor.fromOption(
-                           maybeClientId orElse auth match {
-                             case Some((clientId, clientSecret)) =>
-                               Some(clientId)
-                             case _ => None
-                           },
-                           UnprocessableEntity(
-                               views.Application.error("Missing client_id")))
-            clientSecret <- Xor.fromOption(
-                               maybeClientSecret orElse auth match {
-                                 case Some((clientId, clientSecret)) =>
-                                   Some(clientSecret)
-                                 case _ => None
-                               },
-                               UnprocessableEntity(
-                                   views.Application.error(
-                                       "Missing client_id")))
-            checkClientId <- {
-              Xor.fromOption(clients.find(_.clientId == clientId),
-                             UnprocessableEntity(
-                                 views.Application.error("Invalid client_id")))
+            username <- maybeUsername.toRight(
+              UnprocessableEntity(views.Application.error("Missing username")))
+            password <- maybePassword.toRight(
+              UnprocessableEntity(views.Application.error("Missing password")))
+            clientId <- {
+              (maybeClientId orElse auth match {
+                case Some((clientId, clientSecret)) =>
+                  Some(clientId)
+                case _ => None
+              }).toRight(UnprocessableEntity(
+                views.Application.error("Missing client_id")))
             }
+            clientSecret <- {
+              (maybeClientSecret orElse auth match {
+                case Some((clientId, clientSecret)) =>
+                  Some(clientSecret)
+                case _ => None
+              }).toRight(UnprocessableEntity(
+                views.Application.error("Missing client_id")))
+            }
+            checkClientId <- clients
+              .find(_.clientId == clientId)
+              .toRight(UnprocessableEntity(
+                views.Application.error("Invalid client_id")))
             checkClientSecret <- {
               if (checkClientId.clientSecret == clientSecret) {
-                Xor.right(clientId)
+                Right(clientId)
               } else {
-                Xor.left(Unauthorized("Invalid client_secret"))
+                Left(Unauthorized("Invalid client_secret"))
               }
             }
-            findUser <- Xor.fromOption(users.find(_.username == username),
-                                       UnprocessableEntity("Invalid User"))
+            findUser <- users
+              .find(_.username == username)
+              .toRight(UnprocessableEntity("Invalid User"))
             checkPassword <- {
               if (findUser.password == password) {
-                Xor.right(username)
+                Right(username)
               } else {
-                Xor.left(Unauthorized("Invalid Password"))
+                Left(Unauthorized("Invalid Password"))
               }
             }
           } yield (username, password, clientId)
 
           params match {
-            case Xor.Right((username, password, clientId)) =>
+            case Right((username, password, clientId)) =>
               val scopes = maybeScope
                 .map(_.split(scopeRequestDelimiter).to[List])
                 .getOrElse(List.empty)
               val accessToken = java.util.UUID.randomUUID.toString
 
               val authorizeStore = AuthorizeStore.Token(
-                  accessToken,
-                  LocalDateTime.now().plusNanos(expiration.toNanos),
-                  TokenType.Bearer,
-                  GrantType.Password,
-                  username,
-                  realm,
-                  scopes
+                accessToken,
+                LocalDateTime.now().plusNanos(expiration.toNanos),
+                TokenType.Bearer,
+                GrantType.Password,
+                username,
+                realm,
+                scopes
               )
 
               authorizeStoreCache.value
                 .set(accessToken, authorizeStore, expiration)
 
               val accessTokenResponse = AccessTokenResponse(
-                  accessToken,
-                  expiration,
-                  scopes,
-                  GrantType.Password,
-                  realm,
-                  TokenType.Bearer
+                accessToken,
+                expiration,
+                scopes,
+                GrantType.Password,
+                realm,
+                TokenType.Bearer
               )
 
               Ok(
-                  generateAuthorizationResponse(accessTokenResponse,
-                                                authorizeStore.scope,
-                                                Option(username)))
+                generateAuthorizationResponse(accessTokenResponse,
+                                              authorizeStore.scope,
+                                              Option(username)))
 
-            case Xor.Left(error) => error
+            case Left(error) => error
           }
 
         case Some(_) =>
@@ -414,56 +404,52 @@ class Application(implicit val executionContext: ExecutionContext,
                 maybeClientId: Option[String],
                 maybeScope: Option[String]) = {
     val params = for {
-      state <- Xor.fromOption(
-                  maybeState,
-                  UnprocessableEntity(views.Application.error("Missing state"))
-              )
-      redirectUri <- Xor.fromOption(
-                        maybeRedirectUri,
-                        UnprocessableEntity(
-                            views.Application.error("Missing redirect_uri")))
+      state <- maybeState.toRight(
+        UnprocessableEntity(views.Application.error("Missing state")))
+      redirectUri <- maybeRedirectUri.toRight(
+        UnprocessableEntity(views.Application.error("Missing redirect_uri")))
       responseType <- maybeResponseType match {
-                       case Some("token") => Xor.right(ResponseType.Token)
-                       case Some("code") => Xor.right(ResponseType.Code)
-                       case Some(_) =>
-                         Xor.left(
-                             UnprocessableEntity(views.Application.error(
-                                     "Invalid response_type")))
-                       case _ =>
-                         Xor.left(
-                             UnprocessableEntity(views.Application.error(
-                                     "Missing response_type")))
-                     }
+        case Some("token") => Right(ResponseType.Token)
+        case Some("code")  => Right(ResponseType.Code)
+        case Some(_) =>
+          Left(
+            UnprocessableEntity(
+              views.Application.error("Invalid response_type")))
+        case _ =>
+          Left(
+            UnprocessableEntity(
+              views.Application.error("Missing response_type")))
+      }
       clientId <- {
         for {
-          clientId <- Xor.fromOption(
-                         maybeClientId,
-                         UnprocessableEntity(
-                             views.Application.error("Missing client_id")))
+          clientId <- maybeClientId.toRight(
+            UnprocessableEntity(views.Application.error("Missing client_id")))
           exists <- {
             if (clients.map(_.clientId).contains(clientId)) {
-              Xor.Right(clientId)
+              Right(clientId)
             } else {
-              Xor.Left(
-                  UnprocessableEntity(
-                      views.Application.error("Invalid client_id"))
+              Left(
+                UnprocessableEntity(
+                  views.Application.error("Invalid client_id"))
               )
             }
           }
         } yield exists
       }
       requestedScopes <- {
-        val requestedScopes = maybeScope.map { requestedScope =>
-          requestedScope.split(scopeRequestDelimiter).to[List]
-        }.getOrElse(List.empty)
+        val requestedScopes = maybeScope
+          .map { requestedScope =>
+            requestedScope.split(scopeRequestDelimiter).to[List]
+          }
+          .getOrElse(List.empty)
         if (requestedScopes.forall { requestedScope =>
               serverScopes.contains(requestedScope)
             }) {
-          Xor.Right(requestedScopes)
+          Right(requestedScopes)
         } else {
-          Xor.Left(
-              UnprocessableEntity(
-                  views.Application.error("Requested scope doesn't exist")))
+          Left(
+            UnprocessableEntity(
+              views.Application.error("Requested scope doesn't exist")))
         }
       }
     } yield {
@@ -472,45 +458,45 @@ class Application(implicit val executionContext: ExecutionContext,
 
     Action {
       params match {
-        case Xor.Left(error) =>
+        case Left(error) =>
           error
-        case Xor.Right(
+        case Right(
             (state, redirectUri, responseType, clientId, requestedScopes)) =>
           if (disableConsent) {
             // Automatically authorize depending on the response type
-            users.lift(0) match {
+            users.headOption match {
               case Some(user) =>
                 responseType match {
                   case ResponseType.Code =>
                     import com.netaporter.uri.dsl._
                     val code = java.util.UUID.randomUUID().toString
                     val authorizeStore = AuthorizeStore.Code(
-                        state,
-                        clientId,
-                        redirectUri,
-                        user.username,
-                        requestedScopes
+                      state,
+                      clientId,
+                      redirectUri,
+                      user.username,
+                      requestedScopes
                     )
 
                     authorizeStoreCache.value
                       .set(code, authorizeStore, internalRedirectTimeout)
 
                     val url = (redirectUri ?
-                          ("code" -> code) ?
-                          ("state" -> state)).toString()
+                      ("code"  -> code) ?
+                      ("state" -> state)).toString()
 
                     Redirect(url, MOVED_PERMANENTLY)
                   case ResponseType.Token =>
                     import com.netaporter.uri.dsl._
                     val accessToken = java.util.UUID.randomUUID.toString
                     val authorizeStore = AuthorizeStore.Token(
-                        accessToken,
-                        LocalDateTime.now().plusNanos(expiration.toNanos),
-                        TokenType.Bearer,
-                        GrantType.AuthorizationCode,
-                        user.username,
-                        realm,
-                        requestedScopes
+                      accessToken,
+                      LocalDateTime.now().plusNanos(expiration.toNanos),
+                      TokenType.Bearer,
+                      GrantType.AuthorizationCode,
+                      user.username,
+                      realm,
+                      requestedScopes
                     )
 
                     authorizeStoreCache.value.set(accessToken,
@@ -520,10 +506,10 @@ class Application(implicit val executionContext: ExecutionContext,
                     val url = com.netaporter.uri.Uri
                       .parse(redirectUri)
                       .withFragment(
-                          ("token" -> accessToken) ?
-                            ("expires_in" -> expiration.toSeconds.toString) ?
-                            ("token_type" -> TokenType.Bearer.id) ?
-                            ("state" -> state)
+                        ("token"        -> accessToken) ?
+                          ("expires_in" -> expiration.toSeconds.toString) ?
+                          ("token_type" -> TokenType.Bearer.id) ?
+                          ("state"      -> state)
                       )
                       .toString()
 
@@ -534,18 +520,18 @@ class Application(implicit val executionContext: ExecutionContext,
             }
           } else {
             val authorizeQuery = PendingConsentStore(
-                state,
-                redirectUri,
-                responseType,
-                clientId,
-                requestedScopes
+              state,
+              redirectUri,
+              responseType,
+              clientId,
+              requestedScopes
             )
             pendingConsentStoreCache.value
               .set(state, authorizeQuery, pendingConsentTimeout)
 
             Ok(
-                views.Application
-                  .consent(requestedScopes, state, scopeRequestDelimiter))
+              views.Application
+                .consent(requestedScopes, state, scopeRequestDelimiter))
           }
       }
     }
@@ -554,18 +540,13 @@ class Application(implicit val executionContext: ExecutionContext,
   def tokeninfo(maybeToken: Option[String]) = {
     Action {
       val params = for {
-        token <- Xor.fromOption(
-                    maybeToken,
-                    UnprocessableEntity(
-                        views.Application.error("Missing token"))
-                )
+        token <- maybeToken.toRight(
+          UnprocessableEntity(views.Application.error("Missing token")))
         authorizeStore <- {
           for {
-            retrieve <- Xor.fromOption(
-                           authorizeStoreCache.value
-                             .get[AuthorizeStore](token),
-                           Unauthorized(
-                               views.Application.error("Invalid Token")))
+            retrieve <- authorizeStoreCache.value
+              .get[AuthorizeStore](token)
+              .toRight(Unauthorized(views.Application.error("Invalid Token")))
             authorizeStore <- {
               retrieve match {
                 case a @ AuthorizeStore.Token(accessToken,
@@ -576,81 +557,80 @@ class Application(implicit val executionContext: ExecutionContext,
                                               realm,
                                               scope) =>
                   if (LocalDateTime.now().isBefore(expirationDate)) {
-                    Xor.right(a)
+                    Right(a)
                   } else {
-                    Xor.left(
-                        InternalServerError(
-                            views.Application.error("Token has expired")))
+                    Left(
+                      InternalServerError(
+                        views.Application.error("Token has expired")))
                   }
                 case _ =>
-                  Xor.left(
-                      InternalServerError(
-                          views.Application.error("Internal Error")))
+                  Left(
+                    InternalServerError(
+                      views.Application.error("Internal Error")))
               }
             }
-          } yield (authorizeStore)
+          } yield authorizeStore
         }
-      } yield (authorizeStore)
+      } yield authorizeStore
 
       params match {
-        case Xor.Right((authorizeStore)) =>
+        case Right((authorizeStore)) =>
           val tokeninfoResponse = TokeninfoResponse(
-              authorizeStore.accessToken,
-              authorizeStore.grantType,
-              FiniteDuration(Duration
-                               .between(LocalDateTime.now(),
-                                        authorizeStore.expirationDate)
-                               .toNanos,
-                             TimeUnit.NANOSECONDS),
-              authorizeStore.tokenType,
-              authorizeStore.realm,
-              authorizeStore.uid,
-              authorizeStore.scope)
+            authorizeStore.accessToken,
+            authorizeStore.grantType,
+            FiniteDuration(
+              Duration
+                .between(LocalDateTime.now(), authorizeStore.expirationDate)
+                .toNanos,
+              TimeUnit.NANOSECONDS),
+            authorizeStore.tokenType,
+            authorizeStore.realm,
+            authorizeStore.uid,
+            authorizeStore.scope
+          )
 
           Ok(Json.toJson(tokeninfoResponse))
 
-        case Xor.Left(error) => error
+        case Left(error) => error
       }
     }
   }
 
   val stateForm = Form(
-      mapping(
-          "state" -> OptionalMapping(text)
-      )(StateForm.apply)(StateForm.unapply)
+    mapping(
+      "state" -> OptionalMapping(text)
+    )(StateForm.apply)(StateForm.unapply)
   )
 
   def accept() = Action(parse.form(stateForm)) { implicit request =>
     val params = for {
-      state <- Xor.fromOption(
-                  request.body.state,
-                  UnprocessableEntity(
-                      views.Application.error("Unknown pending consent")))
-      authorizationData <- {
-        Xor.fromOption(
-            pendingConsentStoreCache.value.get[PendingConsentStore](state),
-            InternalServerError(views.Application.error("Internal Error")))
-      }
+      state <- request.body.state.toRight(
+        UnprocessableEntity(
+          views.Application.error("Unknown pending consent")))
+      authorizationData <- pendingConsentStoreCache.value
+        .get[PendingConsentStore](state)
+        .toRight(
+          InternalServerError(views.Application.error("Internal Error")))
     } yield (state, authorizationData)
 
     params match {
-      case Xor.Right((state, authorizationData)) =>
+      case Right((state, authorizationData)) =>
         if (authorizationData.state != state) {
           Forbidden(views.Application.error("Security error"))
         } else {
           Ok(views.Application.login(state))
         }
-      case Xor.Left(error) =>
+      case Left(error) =>
         error
     }
   }
 
   val loginForm = Form(
-      mapping(
-          "username" -> nonEmptyText,
-          "password" -> nonEmptyText,
-          "state" -> nonEmptyText
-      )(LoginForm.apply)(LoginForm.unapply)
+    mapping(
+      "username" -> nonEmptyText,
+      "password" -> nonEmptyText,
+      "state"    -> nonEmptyText
+    )(LoginForm.apply)(LoginForm.unapply)
   )
 
   def login() = Action(parse.form(loginForm)) { implicit request =>
@@ -659,58 +639,54 @@ class Application(implicit val executionContext: ExecutionContext,
         users.find(_.username == request.body.username) match {
           case Some(userDetail) =>
             if (userDetail.password == request.body.password) {
-              Xor.right(request.body.username)
+              Right(request.body.username)
             } else {
-              Xor.left(
-                  Unauthorized(views.Application.error("Invalid Login"))
+              Left(
+                Unauthorized(views.Application.error("Invalid Login"))
               )
             }
           case None =>
-            Xor.left(Unauthorized(views.Application.error("Invalid Login")))
+            Left(Unauthorized(views.Application.error("Invalid Login")))
         }
       }
-      pendingConsentStore <- Xor.fromOption(
-                                pendingConsentStoreCache.value
-                                  .get[PendingConsentStore](
-                                      request.body.state),
-                                Unauthorized(
-                                    views.Application.error("Invalid Login"))
-                            )
+      pendingConsentStore <- pendingConsentStoreCache.value
+        .get[PendingConsentStore](request.body.state)
+        .toRight(Unauthorized(views.Application.error("Invalid Login")))
     } yield (userLogin, pendingConsentStore)
 
     params match {
-      case Xor.Right((userLogin, pendingConsentStore)) =>
+      case Right((userLogin, pendingConsentStore)) =>
         import com.netaporter.uri.dsl._
 
         pendingConsentStore.responseType match {
           case ResponseType.Code =>
             val code = java.util.UUID.randomUUID().toString
             val authorizeStore = AuthorizeStore.Code(
-                pendingConsentStore.state,
-                pendingConsentStore.clientId,
-                pendingConsentStore.redirectUri,
-                request.body.username,
-                pendingConsentStore.scope
+              pendingConsentStore.state,
+              pendingConsentStore.clientId,
+              pendingConsentStore.redirectUri,
+              request.body.username,
+              pendingConsentStore.scope
             )
 
             authorizeStoreCache.value
               .set(code, authorizeStore, internalRedirectTimeout)
 
             val url = (pendingConsentStore.redirectUri ?
-                  ("code" -> code) ?
-                  ("state" -> pendingConsentStore.state)).toString()
+              ("code"  -> code) ?
+              ("state" -> pendingConsentStore.state)).toString()
 
             Redirect(url, MOVED_PERMANENTLY)
           case ResponseType.Token =>
             val accessToken = java.util.UUID.randomUUID.toString
             val authorizeStore = AuthorizeStore.Token(
-                accessToken,
-                LocalDateTime.now().plusNanos(expiration.toNanos),
-                TokenType.Bearer,
-                GrantType.AuthorizationCode,
-                request.body.username,
-                realm,
-                pendingConsentStore.scope
+              accessToken,
+              LocalDateTime.now().plusNanos(expiration.toNanos),
+              TokenType.Bearer,
+              GrantType.AuthorizationCode,
+              request.body.username,
+              realm,
+              pendingConsentStore.scope
             )
 
             authorizeStoreCache.value
@@ -719,17 +695,17 @@ class Application(implicit val executionContext: ExecutionContext,
             val url = com.netaporter.uri.Uri
               .parse(pendingConsentStore.redirectUri)
               .withFragment(
-                  ("token" -> accessToken) ?
-                    ("expires_in" -> expiration.toSeconds.toString) ?
-                    ("token_type" -> TokenType.Bearer.id) ?
-                    ("state" -> pendingConsentStore.state)
+                ("token"        -> accessToken) ?
+                  ("expires_in" -> expiration.toSeconds.toString) ?
+                  ("token_type" -> TokenType.Bearer.id) ?
+                  ("state"      -> pendingConsentStore.state)
               )
               .toString()
 
             Redirect(url, MOVED_PERMANENTLY)
         }
 
-      case Xor.Left(error) => error
+      case Left(error) => error
     }
   }
 }

@@ -22,13 +22,13 @@ class AppComponents(context: Context)
   implicit val executionContext =
     play.api.libs.concurrent.Execution.Implicits.defaultContext
   implicit lazy val authorizeStoreCache = AuthorizeStoreCache(
-      cacheApi("authorizeStore"))
+    cacheApi("authorizeStore"))
   implicit lazy val pendingConsentStoreCache = PendingContentStoreCache(
-      cacheApi("pendingConsentStore"))
+    cacheApi("pendingConsentStore"))
   implicit val config = configuration.underlying
 
   lazy val applicationController = new controllers.Application
-  lazy val assets = new controllers.Assets(httpErrorHandler)
+  lazy val assets                = new controllers.Assets(httpErrorHandler)
 
   // Routes is a generated class
   override def router: Router =
